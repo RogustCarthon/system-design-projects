@@ -62,11 +62,9 @@ func getAndReturn(routineId int, q *BlockingQueue[*Dummy], wg *sync.WaitGroup) {
 
 func main() {
 	q := NewBlockingQueue[*Dummy](5)
-	q.PutBack(&Dummy{1})
-	q.PutBack(&Dummy{2})
-	q.PutBack(&Dummy{3})
-	q.PutBack(&Dummy{4})
-	q.PutBack(&Dummy{5})
+	for i := 0; i < 5; i++ {
+		q.PutBack(&Dummy{i})
+	}
 	wg := &sync.WaitGroup{}
 	wg.Add(10)
 	for i := 0; i < 10; i++ {
