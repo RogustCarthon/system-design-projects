@@ -1,14 +1,13 @@
 package service
 
 import (
-	"context"
 	"fmt"
-	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
 )
+
+type mp = map[string]interface{}
 
 type Service struct {
 	cache *redis.Client
@@ -16,7 +15,7 @@ type Service struct {
 
 var ServerError = map[string]string{"message": "internal server error"}
 
-func NewService(ctx context.Context) (*Service, error) {
+func NewService() (*Service, error) {
 	svc := &Service{}
 	if r, err := NewRedisClient(); err == nil {
 		svc.cache = r
@@ -26,20 +25,28 @@ func NewService(ctx context.Context) (*Service, error) {
 	return svc, nil
 }
 
-func (s *Service) Heartbeat(c *gin.Context) {
-	if err := s.cache.Set(c.Param("userId"), true, 10*time.Second).Err(); err == nil {
-		c.Status(http.StatusOK)
+func (s *Service) Heartbeat(userId string) error {
+	if err := s.cache.Set(userId, true, time.Second).Err(); err == nil {
+		return nil
 	} else {
-		c.JSON(http.StatusInternalServerError, ServerError)
+		return fmt.Errorf("failed to set in cache. [%w]", err)
 	}
 }
 
-func (s *Service) GetStatus(c *gin.Context) {
-	if exists, err := s.cache.Exists(c.Param("userId")).Result(); err == nil && exists == 1 {
-		c.JSON(http.StatusOK, map[string]interface{}{"isOnline": true})
+func (s *Service) GetStatus(userId string) (bool, error) {
+	if exists, err := s.cache.Exists(userId).Result(); err == nil && exists == 1 {
+		return true, nil
 	} else if err == nil {
-		c.JSON(http.StatusOK, map[string]interface{}{"isOnline": false})
+		return false, nil
 	} else {
-		c.JSON(http.StatusInternalServerError, ServerError)
+		return false, fmt.Errorf("failed to check in cache. [%w]", err)
+	}
+}
+
+func (s *Service) GetOnlineCount() (int, error) {
+	if keys, err := s.cache.Keys("*").Result(); err == nil {
+		return len(keys), nil
+	} else {
+		return 0, fmt.Errorf("failed to get keys from cache. [%w]", err)
 	}
 }

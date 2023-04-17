@@ -1,20 +1,15 @@
-package main
+package online_offline_indicator
 
 import (
-	"context"
 	"online_offline_indicator/service"
 
-	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
 
-func main() {
-	r := gin.Default()
-
-	svc, err := service.NewService(context.Background())
+func GetService() *service.Service {
+	svc, err := service.NewService()
 	if err != nil {
-		panic(err)
+		log.Fatal().Err(err).Msg("failed to create service")
 	}
-	r.GET("/status/:userId", svc.GetStatus)
-	r.POST("/status/:userId", svc.Heartbeat)
-	r.Run(":8080")
+	return svc
 }
