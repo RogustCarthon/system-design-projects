@@ -59,6 +59,7 @@ func show(ctx context.Context, conn *pgxpool.Pool) {
 			qr, err := conn.Query(ctx, "SELECT * FROM seats WHERE col=$1 AND row=$2", col, row)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to fetch row")
+				continue
 			}
 			seats, err := pgx.CollectRows(qr, pgx.RowToStructByName[Seat])
 			if err != nil {
