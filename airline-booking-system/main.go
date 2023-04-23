@@ -56,17 +56,17 @@ func show(ctx context.Context, conn *pgxpool.Pool) {
 			continue
 		}
 		for row := 0; row < 20; row++ {
-			if qr, err := conn.Query(ctx, "SELECT * FROM seats WHERE col=$1 AND row=$2", col, row); err != nil {
-				log.Error().Err(err).Msg("failed to insert row")
-			} else {
-				seats, err := pgx.CollectRows(qr, pgx.RowToStructByName[Seat])
-				if err != nil {
-					log.Error().Err(err).Msg("failed to collect")
-				} else {
-					fmt.Printf("%03d-", seats[0].UserId)
-				}
-				qr.Close()
+			qr, err := conn.Query(ctx, "SELECT * FROM seats WHERE col=$1 AND row=$2", col, row)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to fetch row")
 			}
+			seats, err := pgx.CollectRows(qr, pgx.RowToStructByName[Seat])
+			if err != nil {
+				log.Error().Err(err).Msg("failed to collect")
+			} else {
+				fmt.Printf("%03d-", seats[0].UserId)
+			}
+			qr.Close()
 		}
 	}
 	fmt.Println()
