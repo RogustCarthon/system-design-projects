@@ -12,6 +12,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const rowCount = 50
+
 const (
 	host      = "localhost"
 	port      = 5432
@@ -55,7 +57,7 @@ func show(ctx context.Context, conn *pgxpool.Pool) {
 		if col == "_" {
 			continue
 		}
-		for row := 0; row < 20; row++ {
+		for row := 0; row < rowCount; row++ {
 			qr, err := conn.Query(ctx, "SELECT * FROM seats WHERE col=$1 AND row=$2", col, row)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to fetch row")
@@ -66,7 +68,12 @@ func show(ctx context.Context, conn *pgxpool.Pool) {
 			if err != nil {
 				log.Error().Err(err).Msg("failed to collect")
 			} else {
-				fmt.Printf("%03d-", seats[0].UserId)
+				// fmt.Printf("%03d-", seats[0].UserId)
+				if seats[0].UserId == 0 {
+					fmt.Print(".")
+				} else {
+					fmt.Print("x")
+				}
 			}
 			qr.Close()
 		}
@@ -96,7 +103,7 @@ func main() {
 		log.Info().Msg(t.String())
 	}
 
-	for row := 0; row < 20; row++ {
+	for row := 0; row < rowCount; row++ {
 		for _, col := range []string{"a", "b", "c", "d", "e", "f"} {
 			if t, err := conn.Exec(ctx, "INSERT INTO seats (col, row) VALUES ($1, $2);", col, row); err != nil {
 				log.Error().Err(err).Msg("failed to insert row")
@@ -111,8 +118,8 @@ func main() {
 	startTime := time.Now()
 
 	wg := &sync.WaitGroup{}
-	wg.Add(120)
-	for u := 1; u <= 120; u++ {
+	wg.Add(6 * rowCount)
+	for u := 1; u <= 6*rowCount; u++ {
 		go func(uid int, wg *sync.WaitGroup) {
 			defer wg.Done()
 			rows, err := conn.Query(ctx, `
@@ -137,7 +144,7 @@ func main() {
 			if err != nil {
 				log.Error().Err(err).Msg("failed to collect rows")
 			} else {
-				log.Info().Interface("seat", seats).Msg("row updated")
+				log.Debug().Interface("seat", seats).Msg("row updated")
 			}
 		}(u, wg)
 	}
