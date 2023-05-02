@@ -42,7 +42,8 @@ services:
     depends_on:
       - mongo_cfg_rs_init
     networks:
-      - mongo-net
+      mongo-net:
+        ipv4_address: 10.5.0.5
   mongo_1:
     image: mongo
     command: mongod --shardsvr --replSet rs
@@ -86,7 +87,7 @@ services:
   add_shard:
     image: mongo
     command: >
-      mongosh --host localhost:27017 --eval "sh.addShard('rs/mongo_1:27018,mongo_2:27018,mongo_3:27018')"
+      mongosh --host 10.5.0.5:27017 --eval "sh.addShard('rs/mongo_1:27018,mongo_2:27018,mongo_3:27018')"
     depends_on:
       - shard_srv
       - mongo_rs_init
@@ -99,6 +100,11 @@ services:
 
 networks:
   mongo-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16
+          gateway: 10.5.0.1
 
 volumes:
   mongo_data_1:
