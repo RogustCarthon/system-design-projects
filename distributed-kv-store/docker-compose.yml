@@ -1,0 +1,106 @@
+version: "3.8"
+services:
+  mongo_cfg_1:
+    image: mongo
+    command: mongod --configsvr --replSet crs
+    networks:
+      - mongo-net
+  mongo_cfg_2:
+    image: mongo
+    command: mongod --configsvr --replSet crs
+    networks:
+      - mongo-net
+  mongo_cfg_3:
+    image: mongo
+    command: mongod --configsvr --replSet crs
+    networks:
+      - mongo-net
+  mongo_cfg_rs_init:
+    image: mongo
+    command: >
+      mongosh --host mongo_cfg_1:27019 --eval "
+        rs.initiate({
+          _id: 'crs',
+          configsvr: true,
+          members: [
+            { _id: 0, host: 'mongo_cfg_1:27019' },
+            { _id: 1, host: 'mongo_cfg_2:27019' },
+            { _id: 2, host: 'mongo_cfg_3:27019' }
+          ]
+        });
+      "
+    depends_on:
+      - mongo_cfg_1
+      - mongo_cfg_2
+      - mongo_cfg_3
+    networks:
+      - mongo-net
+  shard_srv:
+    image: mongo
+    # command: mongod --configsvr --replSet crs
+    command: mongos --configdb crs/mongo_cfg_1:27019,mongo_cfg_2:27019,mongo_cfg_3:27019 --bind_ip localhost --port 27017
+    depends_on:
+      - mongo_cfg_rs_init
+    networks:
+      - mongo-net
+  mongo_1:
+    image: mongo
+    command: mongod --shardsvr --replSet rs
+    volumes:
+      - mongo_data_1:/data/db
+    networks:
+      - mongo-net
+  mongo_2:
+    image: mongo
+    command: mongod --shardsvr --replSet rs
+    volumes:
+      - mongo_data_2:/data/db
+    networks:
+      - mongo-net
+  mongo_3:
+    image: mongo
+    command: mongod --shardsvr --replSet rs
+    volumes:
+      - mongo_data_3:/data/db
+    networks:
+      - mongo-net
+  mongo_rs_init:
+    image: mongo
+    command: >
+      mongosh --host mongo_1:27018 --eval "
+        rs.initiate({
+          _id: 'rs',
+          members: [
+            { _id: 0, host: 'mongo_1:27018' },
+            { _id: 1, host: 'mongo_2:27018' },
+            { _id: 2, host: 'mongo_3:27018' }
+          ]
+        });
+      "
+    depends_on:
+      - mongo_1
+      - mongo_2
+      - mongo_3
+    networks:
+      - mongo-net
+  add_shard:
+    image: mongo
+    command: >
+      mongosh --host localhost:27017 --eval "sh.addShard('rs/mongo_1:27018,mongo_2:27018,mongo_3:27018')"
+    depends_on:
+      - shard_srv
+      - mongo_rs_init
+  go:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    depends_on:
+      - mongo_rs_init
+
+networks:
+  mongo-net:
+
+volumes:
+  mongo_data_1:
+  mongo_data_2:
+  mongo_data_3:
