@@ -39,11 +39,12 @@ services:
     image: mongo
     # command: mongod --configsvr --replSet crs
     command: mongos --configdb crs/mongo_cfg_1:27019,mongo_cfg_2:27019,mongo_cfg_3:27019 --bind_ip localhost --port 27017
+    ports:
+      - "27017:27017"
     depends_on:
       - mongo_cfg_rs_init
     networks:
-      mongo-net:
-        ipv4_address: 10.5.0.5
+      - "mongo-net"
   mongo_1:
     image: mongo
     command: mongod --shardsvr --replSet rs
@@ -84,19 +85,22 @@ services:
       - mongo_3
     networks:
       - mongo-net
-  add_shard:
-    image: mongo
-    command: >
-      mongosh --host 10.5.0.5:27017 --eval "sh.addShard('rs/mongo_1:27018,mongo_2:27018,mongo_3:27018')"
-    depends_on:
-      - shard_srv
-      - mongo_rs_init
-  go:
-    build:
-      dockerfile: Dockerfile
-      context: .
-    depends_on:
-      - mongo_rs_init
+  # add_shard:
+  #   image: mongo
+  #   command: >
+  #     mongosh --host localhost:27017 --eval "sh.addShard('rs/mongo_1:27018,mongo_2:27018,mongo_3:27018')"
+  #     mongosh --host localhost:27017 --eval "sh.shardCollection('db.c', { 'key' : 'hashed' } )"
+  #   depends_on:
+  #     - shard_srv
+  #     - mongo_rs_init
+  # go:
+  #   build:
+  #     dockerfile: Dockerfile
+  #     context: .
+  #   depends_on:
+  #     - mongo_rs_init
+  #   networks:
+  #     - mongo-net
 
 networks:
   mongo-net:
