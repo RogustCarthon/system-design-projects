@@ -97,6 +97,7 @@ func handleClient(clientConn net.Conn) {
 	slog.Info("Forwarding connection to backend", "addr", server.addr)
 	done := make(chan struct{})
 
+	// FIXME: Cannot re-use the same connection for second request.
 	go func() {
 		_, _ = io.Copy(conn.conn, clientConn)
 		slog.Info("request done", "addr", server.addr)
